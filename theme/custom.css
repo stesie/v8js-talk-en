@@ -1,0 +1,30 @@
+@import url("../css/theme/white.css");
+
+.logos {
+  position: absolute;
+  top: -100px;
+  height: 100px;
+  right: 0;
+}
+
+.reveal section img {
+  border: 0;
+  box-shadow: none;
+}
+
+.reveal h1, .reveal h2 {
+  text-transform: inherit;
+}
+
+.reveal img.small {
+  width: 30%;
+  height: 30%;
+}
+
+.pull-left {
+  float: left;
+}
+
+.pull-right {
+  float: right;
+}

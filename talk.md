@@ -3,12 +3,18 @@ title: Putting V8 into PHP for fun and profit
 separator: <!--s-->
 verticalSeparator: <!--v-->
 ---
+<div class="logos">
+![V8 Logo](images/v8-logo.png)
+![PHP Logo](images/php-logo.png)
+</div>
+
 # Putting V8 into PHP for fun and profit
 
 Stefan Siegl / @stesie23
+
 Mayflower GmbH
 
-PHP-Track @ FrOSCon 2017
+PHP-Track @ FrOSCon 2017-08-19
 
 Note:
 
@@ -17,6 +23,8 @@ Note:
 
 <!--s-->
 # Who am I?
+
+![Github Profile Screenshot](images/who-am-i.png)
 
 Note:
 
@@ -32,7 +40,13 @@ Note:
 
 ... WTH, there's Node.js nowadays ...
 
-... and we all want to do micro services, right?
+<div class="fragment">
+  <img src="images/microservices.jpg">
+
+  <p>
+    ... and we all want to do micro services, right?
+  </p>
+</div>
 
 <!--v-->
 ## well yes, but ...
@@ -49,38 +63,82 @@ Note:
   and forth multiple times
 
 <!--v-->
-## okay, so what for?
+## okay, so what for then?
 
-* customizable import/export pipeline
-* hooking into event system
-* server-side rendering
-* (maybe) share code w/ frontend, e.g. complex validation logic
+<!--v-->
+## customizable import/export pipeline
 
+what I did back @Tradebyte:
+
+* PHP SaaS monolith, CSV/XML parsing done in PHP
+* normal imports: processing in PHP + Import Backend API
+* v8js imports: every raw record passed to V8Js + Backend API exposed
+
+<!--v-->
+<div class="logos">
+  ![Dreamfactory Logo](images/dreamfactory-logo.png)
+</div>
+
+## hooking into event system
+
+Dreamfactory does this:
+* (optional: self-host) Backend as a Service
+* configurable backend, automatically exposed via REST + Swagger Docs
+* every request & response ran through V8Js
+
+
+
+<!--v-->
+## server-side rendering
+
+Facebook does this (and others):
+
+![react-php-v8js](images/react-php.png)
+
+<!--v-->
+* share code w/ frontend, e.g. complex validation logic
+
+(maybe an option, not seen anyone doing yet)
 
 <!--s-->
 ## ext-v8
 
-* http://pecl.php.net/package/v8js
+* http://pecl.php.net/package/v8
 * https://github.com/pinepain/php-v8
 * by Bogdan Padalko, since ~July 2016
 * low-level integration of Google's V8
 * PHP7 only
+
+<!--v-->
+```php
+$isolate = new \V8\Isolate();
+$context = new \V8\Context($isolate);
+$source = new \V8\StringValue($isolate, "'Hello' + ', World!'");
+
+$script = new \V8\Script($context, $source);
+$result = $script->Run($context);
+
+echo $result->ToString($context)->Value(), PHP_EOL;
+```
 
 <!--s-->
 ## ext-v8js
 
 * http://pecl.php.net/package/v8js
 * https://github.com/phpv8/v8js
-* opinionated, highlevel integration
 * first release in 2010 by Jani Taskinen
 * ... who turned police officer meanwhile
+* opinionated, highlevel integration
+
+<!--v-->
+## ext-v8js ...
+
 * myself contributing since mid of 2013
 * maintainer since May 2015
 * ported to PHP7 (seperate branch)
 * works on PHP7.2 and Windows
 
-<!--s-->
-# Hello World
+<!--v-->
 
 ```php
 $v8js = new V8Js();
@@ -89,7 +147,7 @@ $v8js->executeString("print('Hello World\\n');");
 
 
 <!--s-->
-# want to try them out?
+# wanna try them?
 
 * php-v8 and php-v8js are both in Nix(OS)
 - php-v8js in homebrew
@@ -144,7 +202,16 @@ $v8js->executeString(' PHP.sayHello("Rolf"); ');
 ## Functions out
 
 ```php
-$sayHello = $v8js->executeString(' (function(name) { print("Hello " + name + "\\n"); }) ');
+$sayHello = $v8js->executeString(
+  ' (function(name) { print("Hello " + name + "\\n"); }) '
+);
+
+print_r($sayHello);
+/* -->
+ * V8Function Object
+ * (
+ * )
+ */
 
 $sayHello("Rolf");
 // --> Hello Rolf
@@ -168,6 +235,7 @@ class Greeter
     printf("Hello %s\n", $this->name);
   }
 }
+
 $v8js->greeter = new Greeter();
 $v8js->executeString( <<<EOJS
   PHP.greeter.setName('Rolf');
@@ -176,6 +244,25 @@ EOJS
 );
 // --> Hello Rolf
 ```
+
+<!--v-->
+## Constructor Fun \o/
+
+```php
+$v8js->executeString( ' var_dump(PHP.greeter.constructor); ');
+
+/* -->
+ * object(Closure)#694038217 {
+ *     function Greeter() { [native code] }
+ * }
+ */
+
+$v8js->executeString( ' anotherGreeter = new PHP.greeter.constructor(); ');
+$v8js->executeString( ' anotherGreeter.setName("Hanna"); ');
+$v8js->executeString( ' anotherGreeter.sayHello(); ');
+// --> Hello Hanna
+```
+
 
 <!--v-->
 ## Objects out
@@ -196,7 +283,8 @@ print_r($obj);
 <!--v-->
 ## Generators
 
-ES6 and PHP 5.5 both introduced generators, so let's have fun :)
+ES6 and PHP 5.5 both introduced generators  
+... so let's have fun \o/
 
 ```php
 $jsGenerator = $v8->executeString( <<<EOJS

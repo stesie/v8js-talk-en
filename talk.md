@@ -309,13 +309,12 @@ $v8js->setTimeLimit(500);
 $v8js->setMemoryLimit(20E6);
 ```
 
-Caveat: JavaScript code can repeatedly pass large strings back to PHP, and attach those to objects,
-... thus slowly eating up PHP's own `memory_limit`.
+Caveat: slowly eating up `memory_limit`
 
 <!--s-->
 ## Heap Snapshots
 
-@TODO why?
+![Startup Performance Comparison with and without Heap Snapshots](images/snapshot-speed.png)
 
 <!--v-->
 ## Creating a Snapshot

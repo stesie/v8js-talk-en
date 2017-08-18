@@ -336,10 +336,6 @@ $v8 = new V8Js('myapp', [], [], true, $snapshot)
 ```
 
 
-<!--s-->
-# Resources
-
-
 <!--v-->
 # Questions?
 

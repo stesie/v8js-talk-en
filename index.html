@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Putting V8 into PHP for fun and profit</title>
+        <link rel="stylesheet" href="./css/reveal.css">
+        <link rel="stylesheet" href="./theme/custom.css" id="theme">
+        <link rel="stylesheet" href="./css/highlight/solarized-light.css">
+        <link rel="stylesheet" href="./css/print/paper.css" type="text/css" media="print">
+
+    </head>
+    <body>
+
+        <div class="reveal">
+            <div class="slides"><section  data-markdown><script type="text/template">
+<div class="logos">
+![V8 Logo](images/v8-logo.png)
+![PHP Logo](images/php-logo.png)
+</div>
+
+# Putting V8 into PHP for fun and profit
+
+Stefan Siegl / @stesie23
+
+Mayflower GmbH
+
+PHP-Track @ FrOSCon 2017-08-19
+
+<aside class="notes"><ul>
+<li>Hello everyone!</li>
+<li>anyone who doesn&#39;t speak German in the room?</li>
+</ul>
+</aside></script></section><section  data-markdown><script type="text/template">
+# Who am I?
+
+![Github Profile Screenshot](images/who-am-i.png)
+
+<aside class="notes"><ul>
+<li>my name is Stefan Siegl, yet at Mayflower I&#39;m primarily called Rolf, so if you call me Rolf that&#39;s also fine</li>
+<li>as you can see I&#39;m affiliated with V8Js PHP extension, so maybe this talk is a bit biased, but I&#39;ll try to be objective :)</li>
+<li>I&#39;m doing some open source stuff of PHP, you might have heard of Geierlein (at least if you&#39;re a freelancer),
+a free open source Elster client for VAT declarations</li>
+</ul>
+</aside></script></section><section ><section data-markdown><script type="text/template">
+# Why put V8 into PHP!?
+
+</script></section><section data-markdown><script type="text/template">
+
+... WTH, there's Node.js nowadays ...
+
+<div class="fragment">
+  <img src="images/microservices.jpg">
+
+  <p>
+    ... and we all want to do micro services, right?
+  </p>
+</div>
+
+</script></section><section data-markdown><script type="text/template">
+## well yes, but ...
+
+* just hosting a PHP monolith?
+* in need of close integration?
+* want to run user controlled code (in a sandbox)?
+
+<aside class="notes"><ul>
+<li>Node.js might be an option, but if you&#39;re currently just hosting a PHP monolith adding Node.js will be quite some
+extra burden to your operations (although using V8 in PHP doesn&#39;t come for nothing)</li>
+<li>interacting with a seperate Node.js micro service via REST API can quickly become expensive if you call back
+and forth multiple times</li>
+</ul>
+</aside></script></section><section data-markdown><script type="text/template">
+## okay, so what for then?
+
+</script></section><section data-markdown><script type="text/template">
+## customizable import/export pipeline
+
+what I did back @Tradebyte:
+
+* PHP SaaS monolith, CSV/XML parsing done in PHP
+* normal imports: processing in PHP + Import Backend API
+* v8js imports: every raw record passed to V8Js + Backend API exposed
+
+</script></section><section data-markdown><script type="text/template">
+<div class="logos">
+  ![Dreamfactory Logo](images/dreamfactory-logo.png)
+</div>
+
+## hooking into event system
+
+Dreamfactory does this:
+* (optional: self-host) Backend as a Service
+* configurable backend, automatically exposed via REST + Swagger Docs
+* every request & response ran through V8Js
+
+
+
+</script></section><section data-markdown><script type="text/template">
+## server-side rendering
+
+Facebook does this (and others):
+
+![react-php-v8js](images/react-php.png)
+
+</script></section><section data-markdown><script type="text/template">
+* share code w/ frontend, e.g. complex validation logic
+
+(maybe an option, not seen anyone doing yet)
+
+</script></section></section><section ><section data-markdown><script type="text/template">
+## ext-v8
+
+* http://pecl.php.net/package/v8
+* https://github.com/pinepain/php-v8
+* by Bogdan Padalko, since ~July 2016
+* low-level integration of Google's V8
+* PHP7 only
+
+</script></section><section data-markdown><script type="text/template">
+```php
+$isolate = new \V8\Isolate();
+$context = new \V8\Context($isolate);
+$source = new \V8\StringValue($isolate, "'Hello' + ', World!'");
+
+$script = new \V8\Script($context, $source);
+$result = $script->Run($context);
+
+echo $result->ToString($context)->Value(), PHP_EOL;
+```
+
+</script></section></section><section ><section data-markdown><script type="text/template">
+## ext-v8js
+
+* http://pecl.php.net/package/v8js
+* https://github.com/phpv8/v8js
+* first release in 2010 by Jani Taskinen
+* ... who turned police officer meanwhile
+* opinionated, highlevel integration
+
+</script></section><section data-markdown><script type="text/template">
+## ext-v8js ...
+
+* myself contributing since mid of 2013
+* maintainer since May 2015
+* ported to PHP7 (seperate branch)
+* works on PHP7.2 and Windows
+
+</script></section><section data-markdown><script type="text/template">
+
+```php
+$v8js = new V8Js();
+$v8js->executeString("print('Hello World\\n');");
+```
+
+
+</script></section></section><section  data-markdown><script type="text/template">
+# wanna try them?
+
+* php-v8 and php-v8js are both in Nix(OS)
+- php-v8js in homebrew
+- Heroku Custom Repo
+- Windows DLLs for PHP7 :)
+
+
+</script></section><section ><section data-markdown><script type="text/template">
+# V8Js Demo
+
+</script></section><section data-markdown><script type="text/template">
+## Script Exceptions
+
+```php
+try {
+  $v8js->executeString("{]]");
+} catch(V8JsScriptException $e) {
+  echo $e->getMessage();
+}
+
+// --> V8Js::compileString():1: SyntaxError: Unexpected token ]
+```
+
+</script></section><section data-markdown><script type="text/template">
+## Functions in
+
+```php
+$v8js->sayHello = function() {
+  echo "Hello World\n";
+};
+
+$v8js->executeString(' PHP.sayHello(); ');
+// --> Hello World
+```
+
+</script></section><section data-markdown><script type="text/template">
+## Functions w/ arguments
+
+```php
+$v8js->sayHello = function(string $name = "World") {
+  printf("Hello %s\n", $name);
+};
+
+$v8js->executeString(' PHP.sayHello(); ');
+// --> Hello World
+
+$v8js->executeString(' PHP.sayHello("Rolf"); ');
+// --> Hello Rolf
+```
+
+</script></section><section data-markdown><script type="text/template">
+## Functions out
+
+```php
+$sayHello = $v8js->executeString(
+  ' (function(name) { print("Hello " + name + "\\n"); }) '
+);
+
+print_r($sayHello);
+/* -->
+ * V8Function Object
+ * (
+ * )
+ */
+
+$sayHello("Rolf");
+// --> Hello Rolf
+```
+
+</script></section><section data-markdown><script type="text/template">
+## Objects in
+
+```php
+class Greeter
+{
+  private $name;
+
+  public function setName(string $name)
+  {
+    $this->name = $name;
+  }
+
+  public function sayHello()
+  {
+    printf("Hello %s\n", $this->name);
+  }
+}
+
+$v8js->greeter = new Greeter();
+$v8js->executeString( <<<EOJS
+  PHP.greeter.setName('Rolf');
+  PHP.greeter.sayHello();
+EOJS
+);
+// --> Hello Rolf
+```
+
+</script></section><section data-markdown><script type="text/template">
+## Constructor Fun \o/
+
+```php
+$v8js->executeString( ' var_dump(PHP.greeter.constructor); ');
+
+/* -->
+ * object(Closure)#694038217 {
+ *     function Greeter() { [native code] }
+ * }
+ */
+
+$v8js->executeString( ' anotherGreeter = new PHP.greeter.constructor(); ');
+$v8js->executeString( ' anotherGreeter.setName("Hanna"); ');
+$v8js->executeString( ' anotherGreeter.sayHello(); ');
+// --> Hello Hanna
+```
+
+
+</script></section><section data-markdown><script type="text/template">
+## Objects out
+
+```php
+$obj = $v8js->executeString('({ foo: 23, bar: 42 })');
+print_r($obj);
+
+/* -->
+ * V8Object Object
+ * (
+ *     [foo] => 23
+ *     [bar] => 42
+ * )
+ */
+```
+
+</script></section><section data-markdown><script type="text/template">
+## Generators
+
+ES6 and PHP 5.5 both introduced generators  
+... so let's have fun \o/
+
+```php
+$jsGenerator = $v8->executeString( <<<EOJS
+  (function*() {
+    yield 1;
+    yield 2;
+    yield 3;
+  })
+EOJS
+);
+
+foreach($jsGenerator() as $i) {
+  var_dump($i);
+}
+```
+
+</script></section><section data-markdown><script type="text/template">
+## Sandboxing
+
+```php
+$v8js->setTimeLimit(500);
+$v8js->setMemoryLimit(20E6);
+```
+
+Caveat: slowly eating up `memory_limit`
+
+</script></section></section><section ><section data-markdown><script type="text/template">
+## Heap Snapshots
+
+![Startup Performance Comparison with and without Heap Snapshots](images/snapshot-speed.png)
+
+</script></section><section data-markdown><script type="text/template">
+## Creating a Snapshot
+
+```php
+$src = file_get_contents('build/react-bundle.js');
+$src .= file_get_contents('react-app.js');
+$snapshot = V8Js::createSnapshot($src);
+
+// cache $snapshot in $storage
+```
+
+</script></section><section data-markdown><script type="text/template">
+## Re-using a Snapshot
+
+```php
+// fetch $snapshot from $storage
+$v8 = new V8Js('myapp', [], [], true, $snapshot)
+```
+
+
+</script></section><section data-markdown><script type="text/template">
+# Questions?
+
+</script></section><section data-markdown><script type="text/template">
+
+Mail: stefan.siegl@mayflower.de
+
+Twitter: @stesie23
+
+Slides: https://stesie.github.io/v8js-talk-en/
+</script></section></section></div>
+        </div>
+
+        <script src="./lib/js/head.min.js"></script>
+        <script src="./js/reveal.js"></script>
+
+        <script>
+            function extend() {
+              var target = {};
+              for (var i = 0; i < arguments.length; i++) {
+                var source = arguments[i];
+                for (var key in source) {
+                  if (source.hasOwnProperty(key)) {
+                    target[key] = source[key];
+                  }
+                }
+              }
+              return target;
+            }
+
+            // Optional libraries used to extend on reveal.js
+            var deps = [
+              { src: './lib/js/classList.js', condition: function() { return !document.body.classList; } },
+              { src: './plugin/markdown/marked.js', condition: function() { return !!document.querySelector('[data-markdown]'); } },
+              { src: './plugin/markdown/markdown.js', condition: function() { return !!document.querySelector('[data-markdown]'); } },
+              { src: './plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+              { src: './plugin/zoom-js/zoom.js', async: true },
+              { src: './plugin/notes/notes.js', async: true },
+              { src: './plugin/math/math.js', async: true }
+            ];
+
+            // default options to init reveal.js
+            var defaultOptions = {
+              controls: true,
+              progress: true,
+              history: true,
+              center: true,
+              transition: 'default', // none/fade/slide/convex/concave/zoom
+              dependencies: deps
+            };
+
+            // options from URL query string
+            var queryOptions = Reveal.getQueryHash() || {};
+
+            var options = {};
+            options = extend(defaultOptions, options, queryOptions);
+            Reveal.initialize(options);
+        </script>
+        
+    </body>
+</html>
